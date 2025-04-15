@@ -37,11 +37,6 @@ class FocuspointProcessor extends FilesProcessor
             $points = json_decode((string)$points, false) ?: [];
 
             foreach ($points as $point) {
-                $point->x *= 100;
-                $point->y *= 100;
-                $point->height *= 100;
-                $point->width *= 100;
-
                 foreach ($point as $fieldName => &$fieldValue) {
                     // in case of typolinks with target, add a new field {$fieldName}Target='_blank'
                     if (is_string($fieldValue) && strpos($fieldValue, 't3://') === 0) {
