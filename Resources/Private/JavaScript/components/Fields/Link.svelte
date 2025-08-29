@@ -72,6 +72,10 @@
         width: 100%;
     }
 
+    .v12 .input-group {
+        flex-wrap: unset;
+    }
+
     .v12 .input-group-text {
         min-width: 42px;
     }
