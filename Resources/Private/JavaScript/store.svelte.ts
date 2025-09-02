@@ -4,6 +4,8 @@ import Rect from "./shapes/Rect.svelte";
 
 export type ShapeType = "rect" | "polygon";
 
+export const imageMeta = writable<{ w: number; h: number } | null>(null);
+
 type Focuspoint = {[K in string]: string} & {
   __shape: ShapeType;
   __data: any;
@@ -33,21 +35,55 @@ export const SHAPES: {[K in ShapeType]: ShapeConfig} = {
   rect: {
     component: Rect,
     constructor(config: WizardConfig): object {
-      return {
-        x: 0,
-        y: 0,
-        width: parseFloat(config.defaultWidth ?? "0"),
-        height: parseFloat(config.defaultHeight ?? "0"),
-      };
+      const meta = get(imageMeta);
+      const wParsed = parseFloat(config.defaultWidth ?? "0");
+      const hParsed = parseFloat(config.defaultHeight ?? "0");
+
+      console.log(wParsed, hParsed)
+
+      let width  = Number.isFinite(wParsed) && wParsed > 0 ? wParsed : (meta ? Math.round(meta.w * 0.25) : 200);
+      let height = Number.isFinite(hParsed) && hParsed > 0 ? hParsed : (meta ? Math.round(meta.h * 0.25) : 150);
+
+      width = Math.max(50, width);
+      height = Math.max(50, height);
+
+      let x = 20, y = 20;
+      if (meta) {
+        x = Math.round((meta.w - width) / 2);
+        y = Math.round((meta.h - height) / 2);
+        x = Math.max(0, Math.min(x, Math.max(0, meta.w - width)));
+        y = Math.max(0, Math.min(y, Math.max(0, meta.h - height)));
+      }
+
+      return { x, y, width, height };
     }
+
   },
   polygon: {
     component: Polygon,
     constructor(): object {
+      const meta = get(imageMeta);
+      const size = meta ? Math.round(Math.min(meta.w, meta.h) * 0.2) : 200;
+      const s = Math.max(20, size);
+
+      let cx = 20 + s / 2;
+      let cy = 20 + s / 2;
+      if (meta) {
+        cx = Math.round(meta.w / 2);
+        cy = Math.round(meta.h / 2);
+      }
+
+      const half = Math.floor(s / 2);
       return {
-        points: [[10, 10], [50, 10], [50, 50], [10, 50]]
+        points: [
+          [cx - half, cy - half],
+          [cx + half, cy - half],
+          [cx + half, cy + half],
+          [cx - half, cy + half]
+        ]
       };
     }
+
   }
 };
 
