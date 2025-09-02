@@ -1,11 +1,11 @@
 <script lang="ts">
     import {focuspoints} from "../store.svelte";
 
-    const {index, imageWidth, imageHeight, canvasWidth, canvasHeight} = $props();
+    const {index} = $props();
 
     export function onDrag(event: InteractjsDragEvent): void {
-        $focuspoints[index].__data.x = $focuspoints[index].__data.x + event.dx / canvasWidth * imageWidth;
-        $focuspoints[index].__data.y = $focuspoints[index].__data.y + event.dy / canvasHeight * imageHeight;
+        $focuspoints[index].__data.x = $focuspoints[index].__data.x + event.dx;
+        $focuspoints[index].__data.y = $focuspoints[index].__data.y + event.dy;
     }
 
     export function onHandleDrag({dx, dy, target}: InteractjsDragEvent): void {

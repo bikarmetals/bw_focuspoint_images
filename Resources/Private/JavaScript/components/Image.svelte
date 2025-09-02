@@ -1,6 +1,7 @@
 <script lang="ts">
     import interact from 'interactjs';
-    import {focuspoints, getActiveIndex, setActiveIndex, SHAPES} from "../store.svelte";
+    import {focuspoints, getActiveIndex, setActiveIndex, SHAPES, imageMeta
+    } from "../store.svelte";
     import {onDestroy, onMount} from "svelte";
 
     const {image}: {image: string} = $props();
@@ -12,6 +13,43 @@
     let isDarkMode: boolean = $state(false);
     let instanceArray: any[] = $state([]);
     let imgElement: HTMLImageElement;
+    let svgRoot: SVGSVGElement | null = null;
+
+    // convert pixel -> svg coordinates
+    function clientToSvg(svg: SVGSVGElement, clientX: number, clientY: number): [number, number] {
+        const pt = svg.createSVGPoint();
+        pt.x = clientX;
+        pt.y = clientY;
+        const ctm = svg.getScreenCTM();
+        if (!ctm) return [0, 0];
+        const inv = ctm.inverse();
+        const p = pt.matrixTransform(inv);
+        return [p.x, p.y];
+    }
+
+    function getSvgScale(svg: SVGSVGElement) {
+        const rect = svg.getBoundingClientRect();
+        const vb = svg.viewBox.baseVal;
+        return {
+            ratioX: vb.width / rect.width,
+            ratioY: vb.height / rect.height
+        };
+    }
+
+    function normalizePositions(event: InteractjsDragEvent): any {
+        const svg = (event.target as Element)?.ownerSVGElement ?? svgRoot;
+        if (!svg) return;
+        const { ratioX, ratioY } = getSvgScale(svg);
+        const [sx, sy] = clientToSvg(svg, event.clientX, event.clientY);
+
+        return {
+            ...event,
+            dx: event.dx * ratioX,
+            dy: event.dy * ratioY,
+            clientX: sx,
+            clientY: sy
+        } as any;
+    }
 
     interact(".shape").draggable({
         modifiers: [
@@ -25,7 +63,8 @@
             start: setActiveFocuspoint,
             move(event: InteractjsDragEvent) {
                 const index = parseInt(event.target.getAttribute('data-index') ?? "-1");
-                instanceArray[index]?.onDrag?.(event);
+                const adjEvent = normalizePositions(event);
+                instanceArray[index]?.onDrag?.(adjEvent);
             },
             end: setActiveFocuspoint
         }
@@ -43,7 +82,8 @@
             start: setActiveFocuspoint,
             move(event: InteractjsDragEvent) {
                 const shapeIndex = parseInt(event.target.getAttribute('data-shape-index') ?? "-1");
-                instanceArray[shapeIndex]?.onHandleDrag?.(event);
+                const adjEvent = normalizePositions(event);
+                instanceArray[shapeIndex]?.onHandleDrag?.(adjEvent);
             },
             end: setActiveFocuspoint
         }
@@ -71,15 +111,20 @@
     function onload() {
         imageWidth = imgElement.naturalWidth;
         imageHeight = imgElement.naturalHeight;
+
+        imageMeta.set({ w: imageWidth, h: imageHeight });
     }
 
     function onSvgDblClick(event: MouseEvent) {
         if (!$focuspoints[getActiveIndex()] || !(event.target instanceof SVGSVGElement))
             return;
-        const rect = event.target.getBoundingClientRect();
-        const viewBox = event.target.viewBox.baseVal;
-        const ratio = viewBox.width / rect.width;
-        const point = [event.layerX * ratio, event.layerY * ratio] as [number, number];
+        const active = $focuspoints[getActiveIndex()];
+        if (!active || active.__shape !== 'polygon' || !(event.target instanceof SVGSVGElement)) {
+            return;
+        }
+
+        const [sx, sy] = clientToSvg(event.target, event.clientX, event.clientY);
+        const point = [sx, sy] as [number, number];
         const index = findClosestMiddlePointIndex(point);
         const points = $focuspoints[getActiveIndex()].__data.points.slice();
         points.splice(index + 1, 0, point);
@@ -170,7 +215,7 @@
 
 <div class="cropper-bg" class:cropper-bg--dark={isDarkMode}>
     <div class="wrapper">
-        <svg viewBox="0 0 {imageWidth} {imageHeight}" ondblclick={onSvgDblClick}>
+        <svg bind:this={svgRoot} viewBox="0 0 {imageWidth} {imageHeight}" ondblclick={onSvgDblClick}>
             {#each $focuspoints as focuspoint, index}
                 <g class={["shape-group", index === getActiveIndex() && "active"]} onclick={() => setActiveIndex(index)}>
                     <svelte:component bind:this={instanceArray[index]} this={SHAPES[focuspoint.__shape].component as ConstructorOfATypedSvelteComponent} index={index} imageWidth={imageWidth} imageHeight={imageHeight} canvasWidth={canvasWidth} canvasHeight={canvasHeight} />
