@@ -39,8 +39,6 @@ export const SHAPES: {[K in ShapeType]: ShapeConfig} = {
       const wParsed = parseFloat(config.defaultWidth ?? "0");
       const hParsed = parseFloat(config.defaultHeight ?? "0");
 
-      console.log(wParsed, hParsed)
-
       let width  = Number.isFinite(wParsed) && wParsed > 0 ? wParsed : (meta ? Math.round(meta.w * 0.25) : 200);
       let height = Number.isFinite(hParsed) && hParsed > 0 ? hParsed : (meta ? Math.round(meta.h * 0.25) : 150);
 
