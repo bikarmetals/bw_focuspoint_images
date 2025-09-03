@@ -10,7 +10,7 @@
             <f:if condition="{image.properties.width}">
                 <div class="form-control-wrap">
                     <focuspoint-element
-                        image="{f:uri.image(image: image, maxWidth: 2000, maxHeight: 2000)}"
+                        image="{f:uri.image(image: image)}"
                         itemFormElName="{itemFormElName}"
                         itemFormElValue="{itemFormElValue}"
                         wizardConfig="{wizardConfig->f:format.json()}"></focuspoint-element>
